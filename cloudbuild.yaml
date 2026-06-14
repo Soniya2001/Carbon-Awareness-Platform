@@ -1,0 +1,70 @@
+# Google Cloud Build — CI/CD pipeline for CarbonWise AI
+# Deploys to Cloud Run on every push to main branch
+#
+# Required Cloud Build substitutions / Secret Manager secrets:
+#   _REGION          — Cloud Run region (e.g. us-central1)
+#   _SERVICE_NAME    — Cloud Run service name (e.g. carbonwise-ai)
+#   _ARTIFACT_REPO   — Artifact Registry repo path
+#   GEMINI_API_KEY   — Stored in Secret Manager as "GEMINI_API_KEY"
+
+substitutions:
+  _REGION: us-central1
+  _SERVICE_NAME: carbonwise-ai
+  _ARTIFACT_REPO: us-central1-docker.pkg.dev/$PROJECT_ID/carbonwise/carbonwise-ai
+
+steps:
+  # ── Step 1: Build Docker image ──────────────────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    id: build
+    args:
+      - build
+      - '--no-cache'
+      - '--tag'
+      - '${_ARTIFACT_REPO}:$COMMIT_SHA'
+      - '--tag'
+      - '${_ARTIFACT_REPO}:latest'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_GEMINI_API_KEY='
+      - '--file'
+      - 'Dockerfile'
+      - '.'
+
+  # ── Step 2: Push image to Artifact Registry ─────────────────────────
+  - name: 'gcr.io/cloud-builders/docker'
+    id: push
+    args:
+      - push
+      - '--all-tags'
+      - '${_ARTIFACT_REPO}'
+    waitFor: [build]
+
+  # ── Step 3: Deploy to Cloud Run ─────────────────────────────────────
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    id: deploy
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - '${_SERVICE_NAME}'
+      - '--image=${_ARTIFACT_REPO}:$COMMIT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--min-instances=0'
+      - '--max-instances=10'
+      - '--memory=512Mi'
+      - '--cpu=1'
+      - '--port=3000'
+      - '--set-secrets=NEXT_PUBLIC_GEMINI_API_KEY=GEMINI_API_KEY:latest'
+      - '--set-env-vars=NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1'
+    waitFor: [push]
+
+images:
+  - '${_ARTIFACT_REPO}:$COMMIT_SHA'
+  - '${_ARTIFACT_REPO}:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  machineType: E2_HIGHCPU_8
+
+timeout: '1200s'
