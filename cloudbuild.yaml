@@ -1,11 +1,5 @@
-# Google Cloud Build — CI/CD pipeline for CarbonWise AI
-# Deploys to Cloud Run on every push to main branch
-#
-# Required Cloud Build substitutions / Secret Manager secrets:
-#   _REGION          — Cloud Run region (e.g. us-central1)
-#   _SERVICE_NAME    — Cloud Run service name (e.g. carbonwise-ai)
-#   _ARTIFACT_REPO   — Artifact Registry repo path
-#   GEMINI_API_KEY   — Stored in Secret Manager as "GEMINI_API_KEY"
+# Google Cloud Build — CarbonWise AI
+# Builds Docker image and deploys to Cloud Run
 
 substitutions:
   _REGION: us-central1
@@ -19,17 +13,17 @@ steps:
     args:
       - build
       - '--no-cache'
+      - '--build-arg'
+      - 'NODE_VERSION=20'
       - '--tag'
       - '${_ARTIFACT_REPO}:$COMMIT_SHA'
       - '--tag'
       - '${_ARTIFACT_REPO}:latest'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_GEMINI_API_KEY='
       - '--file'
       - 'Dockerfile'
       - '.'
 
-  # ── Step 2: Push image to Artifact Registry ─────────────────────────
+  # ── Step 2: Push to Artifact Registry ──────────────────────────────
   - name: 'gcr.io/cloud-builders/docker'
     id: push
     args:
@@ -55,7 +49,7 @@ steps:
       - '--memory=512Mi'
       - '--cpu=1'
       - '--port=3000'
-      - '--set-secrets=NEXT_PUBLIC_GEMINI_API_KEY=GEMINI_API_KEY:latest'
+      - '--set-secrets=GEMINI_API_KEY=GEMINI_API_KEY:latest'
       - '--set-env-vars=NODE_ENV=production,NEXT_TELEMETRY_DISABLED=1'
     waitFor: [push]
 
