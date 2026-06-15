@@ -35,7 +35,6 @@ export interface UserPreferences {
   onboardingDone: boolean;
   name: string;
   dietType: 'omnivore' | 'flexitarian' | 'vegetarian' | 'vegan';
-  geminiApiKey: string;
   theme: 'light' | 'dark' | 'system';
   units: 'metric' | 'imperial';
   notifications: boolean;
@@ -204,7 +203,6 @@ const DEFAULT_PREFERENCES: UserPreferences = {
   onboardingDone: false,
   name: '',
   dietType: 'omnivore',
-  geminiApiKey: '',
   theme: 'system',
   units: 'metric',
   notifications: true,
@@ -591,7 +589,7 @@ export function exportAllData(): string {
   try {
     const data = {
       records: getRecords(),
-      preferences: { ...getPreferences(), geminiApiKey: '[REDACTED]' },
+      preferences: { ...getPreferences() },
       gamification: getGamification(),
       challenges: getChallenges(),
       simulations: getSimulations(),

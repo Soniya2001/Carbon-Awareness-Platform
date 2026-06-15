@@ -7,7 +7,6 @@ test.describe('Carbon Twin AI', () => {
         onboardingDone: true,
         name: 'Test User',
         dietType: 'omnivore',
-        geminiApiKey: '',
         theme: 'system',
         units: 'metric',
       }));

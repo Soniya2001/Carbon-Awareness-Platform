@@ -9,7 +9,6 @@ test.describe('Carbon Calculator', () => {
         onboardingDone: true,
         name: 'Test User',
         dietType: 'omnivore',
-        geminiApiKey: '',
         theme: 'system',
         units: 'metric',
       }));
