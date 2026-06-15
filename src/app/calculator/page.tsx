@@ -225,9 +225,9 @@ export default function CalculatorPage() {
                 </p>
               </div>
             )}
-          </Card>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
