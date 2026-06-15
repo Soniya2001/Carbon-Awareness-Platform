@@ -370,7 +370,7 @@ function estimateAnnualKg(data: AssessmentData): number {
 // ─── Reusable sub-components ───────────────────────────────────────────
 function StepWrapper({ title, desc, emoji, children }: { title: string; desc: string; emoji: string; children: React.ReactNode }) {
   return (
-    <motion.div key="wrap" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="space-y-5">
+    <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.25 }} className="space-y-5">
       <div className="text-center space-y-1">
         <div className="text-4xl mb-2" aria-hidden>{emoji}</div>
         <h2 className="text-xl font-bold text-foreground">{title}</h2>
