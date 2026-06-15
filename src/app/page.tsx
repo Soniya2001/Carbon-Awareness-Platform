@@ -387,13 +387,23 @@ function NavButtons({ onBack, onNext, nextDisabled = false, nextLabel = 'Continu
   return (
     <div className="flex gap-3 pt-2">
       {!isFirst && onBack && (
-        <Button type="button" variant="outline" onClick={onBack} className="flex-none gap-1" aria-label="Go back">
-          <ArrowLeft className="w-4 h-4" aria-hidden /> Back
+        <Button type="button" variant="outline" onClick={onBack} className="flex-none" aria-label="Go back">
+          <ArrowLeft className="w-4 h-4" aria-hidden />
+          <span>Back</span>
         </Button>
       )}
       {onNext && (
-        <Button type="button" variant="gradient" onClick={onNext} disabled={nextDisabled || nextLoading} loading={nextLoading} className={cn('gap-1', isFirst ? 'w-full' : 'flex-1')} aria-label={nextLabel}>
-          {nextLabel} {!nextLoading && <ArrowRight className="w-4 h-4" aria-hidden />}
+        <Button
+          type="button"
+          variant="gradient"
+          onClick={onNext}
+          disabled={nextDisabled || nextLoading}
+          loading={nextLoading}
+          className={cn(isFirst ? 'w-full' : 'flex-1')}
+          aria-label={nextLabel}
+        >
+          <span>{nextLabel}</span>
+          {!nextLoading && <ArrowRight className="w-4 h-4" aria-hidden />}
         </Button>
       )}
     </div>
