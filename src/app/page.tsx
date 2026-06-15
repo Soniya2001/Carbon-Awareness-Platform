@@ -151,12 +151,32 @@ export default function OnboardingPage() {
 
   const finish = async () => {
     setCompleting(true);
-    // Save initial carbon profile from assessment answers
-    const records = buildInitialRecords(data);
-    for (const r of records) {
+    // 1. Save initial carbon records from assessment answers
+    const initialRecords = buildInitialRecords(data);
+    for (const r of initialRecords) {
       saveRecord(r as Parameters<typeof saveRecord>[0]);
     }
-    updatePreferences({ onboardingDone: true, name: data.name.trim(), dietType: data.dietType, notifications: true, theme: 'system', units: 'metric' });
+    // 2. Save preferences (single source of truth)
+    updatePreferences({
+      onboardingDone: true,
+      name: data.name.trim(),
+      dietType: data.dietType,
+      notifications: true,
+      theme: 'system',
+      units: 'metric',
+    });
+    // 3. Persist full assessment separately for Settings display
+    try {
+      localStorage.setItem('cw_assessment', JSON.stringify({
+        primaryTransport:       data.primaryTransport,
+        weeklyCarKm:            data.weeklyCarKm,
+        electricityKwh:         data.electricityKwh,
+        hasAC:                  data.hasAC,
+        monthlyShoppingItems:   data.monthlyShoppingItems,
+        shortFlightsPerYear:    data.shortFlightsPerYear,
+        longFlightsPerYear:     data.longFlightsPerYear,
+      }));
+    } catch { /* quota exceeded */ }
     router.push('/dashboard');
   };
 

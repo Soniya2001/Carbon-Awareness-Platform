@@ -56,6 +56,7 @@ export function AICoach() {
         monthly:     monthlySummary?.total,
         topCategory: monthlySummary?.byCategory ? Object.entries(monthlySummary.byCategory).sort(([,a],[,b])=>b-a)[0]?.[0] : undefined,
         streak:      gamification?.streak,
+        name:        preferences?.name,
       };
       const response = await chatWithCoach(trimmed, chatHistory.slice(-10).map(m=>({role:m.role,content:m.content})), context);
       addChatMessage({ id: uniqueId(), role:'assistant', content: response, timestamp: new Date().toISOString() });

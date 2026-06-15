@@ -40,6 +40,7 @@ export default function DashboardPage() {
   } = useAppStore();
 
   const totalMonthlyKg = monthlySummary?.total ?? 0;
+  const hasData = records.length > 0;
   const scoreData = useMemo(() => carbonScore(totalMonthlyKg), [totalMonthlyKg]);
   const sustScore = useMemo(() => sustainabilityScore(totalMonthlyKg * 12), [totalMonthlyKg]);
 
@@ -95,25 +96,26 @@ export default function DashboardPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="Carbon Grade"
-          value={scoreData.grade}
-          subtitle={scoreData.label}
+          value={hasData ? scoreData.grade : '—'}
+          subtitle={hasData ? scoreData.label : 'Log activities to calculate'}
           icon={<Zap className="w-5 h-5 text-sky-500" />}
-          variant={scoreData.grade === 'A+' || scoreData.grade === 'A' ? 'eco' : 'amber'}
-          trend={scoreData.vsGlobal <= 0 ? 'up' : 'down'}
+          variant={!hasData ? 'default' : (scoreData.grade === 'A+' || scoreData.grade === 'A' ? 'eco' : 'amber')}
+          trend={hasData && scoreData.vsGlobal <= 0 ? 'up' : 'neutral'}
           trendValue={
-            scoreData.vsGlobal <= 0
+            !hasData ? 'Complete assessment'
+              : scoreData.vsGlobal <= 0
               ? `${Math.abs(scoreData.vsGlobal)}% below avg`
               : `${scoreData.vsGlobal}% above avg`
           }
         />
         <KPICard
           title="Sustainability Score"
-          value={`${sustScore}/100`}
-          subtitle="Annual rating index"
+          value={hasData ? `${sustScore}/100` : '—/100'}
+          subtitle={hasData ? 'Annual rating index' : 'Log activities to score'}
           icon={<Leaf className="w-5 h-5 text-eco-600" />}
-          variant="eco"
-          trend={sustScore >= 60 ? 'up' : 'neutral'}
-          trendValue={sustScore >= 80 ? 'Excellent' : sustScore >= 60 ? 'Good' : 'Needs attention'}
+          variant={!hasData ? 'default' : 'eco'}
+          trend={hasData && sustScore >= 60 ? 'up' : 'neutral'}
+          trendValue={!hasData ? 'Not enough data' : sustScore >= 80 ? 'Excellent' : sustScore >= 60 ? 'Good' : 'Needs attention'}
         />
         <KPICard
           title="Eco Points & Level"

@@ -38,6 +38,13 @@ export const EMISSION_FACTORS: Record<
     heat_pump: { factor: 0.07, unit: 'kWh', label: 'Heat Pump' },
   },
   food: {
+    // Diet type daily averages (used by onboarding)
+    high_meat:  { factor: 7.19, unit: 'day', label: 'High Meat Diet' },
+    omnivore:   { factor: 7.19, unit: 'day', label: 'Mixed Diet' },
+    flexitarian:{ factor: 5.63, unit: 'day', label: 'Flexitarian Diet' },
+    vegetarian: { factor: 3.81, unit: 'day', label: 'Vegetarian Diet' },
+    vegan:      { factor: 2.89, unit: 'day', label: 'Vegan Diet' },
+    // Individual food items
     beef: { factor: 27.0, unit: 'kg', label: 'Beef' },
     lamb: { factor: 39.2, unit: 'kg', label: 'Lamb' },
     pork: { factor: 12.1, unit: 'kg', label: 'Pork' },
@@ -157,6 +164,7 @@ export function calculateDailyFootprint(inputs: ActivityInput[]): DailyFootprint
  * Based on annual kg CO2e
  */
 export function sustainabilityScore(annualKg: number): number {
+  if (annualKg <= 0) return 0; // No data — return 0 instead of 100
   if (annualKg <= NET_ZERO) return 100;
   if (annualKg >= GLOBAL_AVG_KG_YEAR * 2) return 0;
 
@@ -167,7 +175,7 @@ export function sustainabilityScore(annualKg: number): number {
 }
 
 export interface CarbonScore {
-  grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F';
+  grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'F' | '—';
   label: string;
   color: string;
   monthlyKg: number;
@@ -181,6 +189,20 @@ export interface CarbonScore {
  */
 export function carbonScore(monthlyKg: number): CarbonScore {
   const annualKg = monthlyKg * 12;
+
+  // No data — return empty state instead of fake A+
+  if (monthlyKg === 0) {
+    return {
+      grade: '—',
+      label: 'No Data Yet',
+      color: '#94a3b8',
+      monthlyKg: 0,
+      annualKg: 0,
+      vsGlobal: 0,
+      vsTarget: 0,
+    };
+  }
+
   const vsGlobal = Math.round(((annualKg - GLOBAL_AVG_KG_YEAR) / GLOBAL_AVG_KG_YEAR) * 100);
   const vsTarget = Math.round(((annualKg - IPCC_TARGET) / IPCC_TARGET) * 100);
 
