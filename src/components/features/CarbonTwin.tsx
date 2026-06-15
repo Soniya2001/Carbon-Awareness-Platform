@@ -32,7 +32,7 @@ export function CarbonTwin() {
       setResult(sim);
       setAILoading(true);
       try {
-        const narr = await generateTwinNarrative({ scenario: sim.scenarioName, current: sim.currentAnnualKg, projected: sim.projectedAnnualKg, savings: sim.annualSavingKg, trees: sim.equivalents.trees, years });
+        const narr = await generateTwinNarrative({ scenario: sim.scenarioName, current: sim.currentAnnualKg, projected: sim.scenarioAnnualKg, savings: sim.annualSavingKg, trees: sim.equivalents.trees, years });
         setNarrative(narr);
       } catch { /* optional */ } finally { setAILoading(false); }
     } finally { setIsRunning(false); }
@@ -57,7 +57,7 @@ export function CarbonTwin() {
                 <span className="text-2xl" aria-hidden>{s.icon}</span>
                 <Badge variant={DIFF_COLORS[s.difficulty as keyof typeof DIFF_COLORS] ?? 'outline'} className="text-[10px]">{s.difficulty}</Badge>
               </div>
-              <p className="font-medium text-sm">{s.label}</p>
+              <p className="font-medium text-sm">{s.name}</p>
               <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{s.description}</p>
             </motion.button>
           ))}

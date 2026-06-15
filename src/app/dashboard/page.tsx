@@ -20,7 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { KPICard } from '@/components/features/KPICard';
 import { ChallengeCard } from '@/components/features/ChallengeCard';
-import { PieBreakdown, TrendLine, CategoryBar } from '@/components/charts';
+import { PieBreakdown, TrendLine } from '@/components/charts';
 import { useAppStore } from '@/store/useAppStore';
 import { carbonScore, sustainabilityScore, CATEGORY_ICONS } from '@/lib/carbonEngine';
 import { pointsToNextLevel, LEVEL_LABELS, BADGE_DEFS } from '@/lib/storage';
@@ -64,14 +64,6 @@ export default function DashboardPage() {
     return monthlySummary.dailyRecords.map((r) => ({
       date: r.date,
       total: r.total,
-    }));
-  }, [monthlySummary]);
-
-  const barData = useMemo(() => {
-    if (!monthlySummary?.byCategory) return [];
-    return Object.entries(monthlySummary.byCategory).map(([category, value]) => ({
-      category: capitalize(category),
-      value,
     }));
   }, [monthlySummary]);
 
@@ -214,9 +206,9 @@ export default function DashboardPage() {
             <h3 className="text-lg font-bold font-display tracking-tight flex items-center gap-1.5">
               <Trophy className="w-5 h-5 text-amber-500" /> Active Challenges
             </h3>
-            <Button asChild size="xs" variant="ghost">
-              <Link href="/challenges" className="flex items-center gap-0.5">
-                View All <ArrowUpRight className="w-3.5 h-3.5" />
+            <Button asChild size="sm" variant="ghost">
+              <Link href="/challenges">
+                View All <ArrowUpRight className="w-3.5 h-3.5 ml-0.5" />
               </Link>
             </Button>
           </div>

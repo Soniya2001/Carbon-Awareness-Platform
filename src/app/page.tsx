@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Leaf, User, ArrowRight, ArrowLeft, Loader2,
-  Car, Zap, Utensils, ShoppingBag, Plane, CheckCircle2,
+  Car, Zap, Utensils, Plane, CheckCircle2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

@@ -4,6 +4,7 @@ import { create } from 'zustand';
 import {
   getRecords,
   saveRecord,
+  deleteRecord as storageDeleteRecord,
   getMonthlySummary,
   getPreferences,
   savePreferences,
@@ -150,7 +151,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
       saveRecord(record);
 
       // Update streak
-      const updatedGameState = updateStreak();
+      updateStreak();
 
       // Award points
       const earnedPoints = 10 + Math.floor(co2e * 0.5);
@@ -181,8 +182,7 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   // ── Delete Record ──────────────────────────────
   deleteRecord: (id: string) => {
     try {
-      const { deleteRecord: deleteFromStorage } = require('@/lib/storage');
-      deleteFromStorage(id);
+      storageDeleteRecord(id);
       const records = getRecords();
       const monthlySummary = getMonthlySummary();
       set({ records, monthlySummary });
