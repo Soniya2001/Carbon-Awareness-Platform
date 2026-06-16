@@ -23,53 +23,45 @@ import { ChallengeCard } from '@/components/features/ChallengeCard';
 import { PieBreakdown, TrendLine } from '@/components/charts';
 import { useAppStore } from '@/store/useAppStore';
 import { carbonScore, sustainabilityScore, CATEGORY_ICONS } from '@/lib/carbonEngine';
-import { pointsToNextLevel, LEVEL_LABELS, BADGE_DEFS } from '@/lib/storage';
+import { pointsToNextLevel, LEVEL_LABELS, BADGE_DEFS, profileBaselineMonthly, profileCompletionPercent } from '@/lib/storage';
 import { formatCO2, formatDateShort, capitalize } from '@/lib/utils';
 
 export default function DashboardPage() {
   const {
-    records,
-    monthlySummary,
-    gamification,
-    challenges,
-    simulations,
-    preferences,
-    joinChallenge,
-    markChallengeComplete,
-    updateChallengeProgress,
+    records, monthlySummary, gamification, challenges, simulations,
+    preferences, profile, joinChallenge, markChallengeComplete, updateChallengeProgress,
   } = useAppStore();
 
-  const totalMonthlyKg = monthlySummary?.total ?? 0;
-  const hasData = records.length > 0;
-  const scoreData = useMemo(() => carbonScore(totalMonthlyKg), [totalMonthlyKg]);
-  const sustScore = useMemo(() => sustainabilityScore(totalMonthlyKg * 12), [totalMonthlyKg]);
+  // Use actual logged data OR profile baseline — whichever is non-zero
+  const baseline     = useMemo(() => profile ? profileBaselineMonthly(profile) : null, [profile]);
+  const hasData      = records.length > 0;
+  const baselineTotal = baseline ? Object.values(baseline).reduce((a, b) => a + b, 0) : 0;
+  const totalMonthlyKg = hasData ? (monthlySummary?.total ?? 0) : baselineTotal;
+  const isBaseline   = !hasData && baselineTotal > 0;
+  const completion   = profile ? profileCompletionPercent(profile) : 0;
 
-  const points = gamification?.points ?? 0;
+  const scoreData  = useMemo(() => carbonScore(totalMonthlyKg),         [totalMonthlyKg]);
+  const sustScore  = useMemo(() => sustainabilityScore(totalMonthlyKg * 12), [totalMonthlyKg]);
+  const points     = gamification?.points ?? 0;
   const levelLabel = gamification ? LEVEL_LABELS[gamification.level] ?? 'Seedling 🌱' : 'Seedling 🌱';
-  const levelProgress = useMemo(() => pointsToNextLevel(points), [points]);
-  const activeChallenges = useMemo(() => challenges.filter((c) => c.joined && !c.completed).slice(0, 3), [challenges]);
+  const levelProgress    = useMemo(() => pointsToNextLevel(points), [points]);
+  const activeChallenges = useMemo(() => challenges.filter(c => c.joined && !c.completed).slice(0, 3), [challenges]);
   const recentActivities = useMemo(() => [...records].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5), [records]);
+  const streak = gamification?.streak ?? 0;
 
-  // Construct charts data
+  // Chart data: use logged data if available, else baseline categories
   const pieData = useMemo(() => {
-    if (!monthlySummary?.byCategory) return [];
-    return Object.entries(monthlySummary.byCategory).map(([category, value]) => ({
-      name: capitalize(category),
-      value,
-      category,
+    const source = hasData ? monthlySummary?.byCategory : baseline ?? {};
+    if (!source) return [];
+    return Object.entries(source).filter(([, v]) => v > 0).map(([category, value]) => ({
+      name: capitalize(category), value, category,
     }));
-  }, [monthlySummary]);
+  }, [hasData, monthlySummary, baseline]);
 
   const trendData = useMemo(() => {
-    if (!monthlySummary?.dailyRecords) return [];
-    return monthlySummary.dailyRecords.map((r) => ({
-      date: r.date,
-      total: r.total,
-    }));
+    if (!monthlySummary?.dailyRecords?.length) return [];
+    return monthlySummary.dailyRecords.map(r => ({ date: r.date, total: r.total }));
   }, [monthlySummary]);
-
-  // Streak status
-  const streak = gamification?.streak ?? 0;
 
   return (
     <div className="space-y-6">
@@ -77,13 +69,18 @@ export default function DashboardPage() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display tracking-tight">
-            Hi, {preferences?.name || 'Eco Warrior'}! 👋
+            Hi, {preferences?.name || profile?.name || 'Eco Warrior'}! 👋
           </h2>
           <p className="text-muted-foreground text-sm">
-            Here is your carbon breakdown and eco coaching overview for this month.
+            {isBaseline
+              ? 'Showing profile-based estimates. Log activities for precise tracking.'
+              : 'Your carbon breakdown and eco coaching overview for this month.'}
           </p>
         </div>
         <div className="flex gap-2">
+          <Button asChild size="sm" variant="outline">
+            <Link href="/profile">View Profile</Link>
+          </Button>
           <Button asChild size="sm" variant="gradient">
             <Link href="/calculator">
               <Plus className="w-4 h-4 mr-1.5" /> Log Activity
@@ -92,30 +89,37 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {/* Profile completion prompt */}
+      {completion < 80 && (
+        <div className="rounded-xl border border-amber-200 dark:border-amber-800 bg-amber-50/60 dark:bg-amber-900/20 px-4 py-3 flex items-center justify-between gap-3 flex-wrap">
+          <p className="text-sm text-amber-800 dark:text-amber-300">
+            ✏️ Your profile is <strong>{completion}% complete</strong>. A full profile unlocks better AI insights and forecasting.
+          </p>
+          <Button asChild size="sm" variant="outline" className="shrink-0">
+            <Link href="/settings">Complete Profile</Link>
+          </Button>
+        </div>
+      )}
+
       {/* KPI Section */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="Carbon Grade"
-          value={hasData ? scoreData.grade : '—'}
-          subtitle={hasData ? scoreData.label : 'Log activities to calculate'}
+          value={totalMonthlyKg > 0 ? scoreData.grade : '—'}
+          subtitle={totalMonthlyKg > 0 ? `${scoreData.label}${isBaseline ? ' (est.)' : ''}` : 'Log activities to calculate'}
           icon={<Zap className="w-5 h-5 text-sky-500" />}
-          variant={!hasData ? 'default' : (scoreData.grade === 'A+' || scoreData.grade === 'A' ? 'eco' : 'amber')}
-          trend={hasData && scoreData.vsGlobal <= 0 ? 'up' : 'neutral'}
-          trendValue={
-            !hasData ? 'Complete assessment'
-              : scoreData.vsGlobal <= 0
-              ? `${Math.abs(scoreData.vsGlobal)}% below avg`
-              : `${scoreData.vsGlobal}% above avg`
-          }
+          variant={totalMonthlyKg === 0 ? 'default' : (scoreData.grade === 'A+' || scoreData.grade === 'A' ? 'eco' : 'amber')}
+          trend={totalMonthlyKg > 0 && scoreData.vsGlobal <= 0 ? 'up' : 'neutral'}
+          trendValue={totalMonthlyKg === 0 ? 'Complete assessment' : scoreData.vsGlobal <= 0 ? `${Math.abs(scoreData.vsGlobal)}% below avg` : `${scoreData.vsGlobal}% above avg`}
         />
         <KPICard
           title="Sustainability Score"
-          value={hasData ? `${sustScore}/100` : '—/100'}
-          subtitle={hasData ? 'Annual rating index' : 'Log activities to score'}
+          value={totalMonthlyKg > 0 ? `${sustScore}/100` : '—/100'}
+          subtitle={isBaseline ? 'Profile estimate' : totalMonthlyKg > 0 ? 'Annual rating index' : 'Log activities to score'}
           icon={<Leaf className="w-5 h-5 text-eco-600" />}
-          variant={!hasData ? 'default' : 'eco'}
-          trend={hasData && sustScore >= 60 ? 'up' : 'neutral'}
-          trendValue={!hasData ? 'Not enough data' : sustScore >= 80 ? 'Excellent' : sustScore >= 60 ? 'Good' : 'Needs attention'}
+          variant={totalMonthlyKg === 0 ? 'default' : 'eco'}
+          trend={totalMonthlyKg > 0 && sustScore >= 60 ? 'up' : 'neutral'}
+          trendValue={totalMonthlyKg === 0 ? 'Not enough data' : sustScore >= 80 ? 'Excellent' : sustScore >= 60 ? 'Good' : 'Needs attention'}
         />
         <KPICard
           title="Eco Points & Level"

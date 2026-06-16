@@ -5,34 +5,25 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard,
-  Calculator,
-  GitBranch,
-  TrendingUp,
-  Target,
-  Users,
-  Bot,
-  Award,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
-  Leaf,
-  Flame,
+  LayoutDashboard, Calculator, GitBranch, TrendingUp,
+  Target, Users, Bot, Award, Settings, ChevronLeft,
+  ChevronRight, Leaf, Flame, UserCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/store/useAppStore';
 import { LEVEL_LABELS } from '@/lib/storage';
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/calculator', label: 'Calculator', icon: Calculator },
-  { href: '/carbon-twin', label: 'Carbon Twin', icon: GitBranch },
-  { href: '/forecast', label: 'Forecast', icon: TrendingUp },
-  { href: '/challenges', label: 'Challenges', icon: Target },
-  { href: '/community', label: 'Community', icon: Users },
-  { href: '/ai-coach', label: 'AI Coach', icon: Bot },
-  { href: '/achievements', label: 'Achievements', icon: Award },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/dashboard',    label: 'Dashboard',    icon: LayoutDashboard },
+  { href: '/profile',      label: 'My Profile',   icon: UserCircle      },
+  { href: '/calculator',   label: 'Calculator',   icon: Calculator      },
+  { href: '/carbon-twin',  label: 'Carbon Twin',  icon: GitBranch       },
+  { href: '/forecast',     label: 'Forecast',     icon: TrendingUp      },
+  { href: '/challenges',   label: 'Challenges',   icon: Target          },
+  { href: '/community',    label: 'Community',    icon: Users           },
+  { href: '/ai-coach',     label: 'AI Coach',     icon: Bot             },
+  { href: '/achievements', label: 'Achievements', icon: Award           },
+  { href: '/settings',     label: 'Settings',     icon: Settings        },
 ];
 
 export function Sidebar() {

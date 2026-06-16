@@ -52,11 +52,23 @@ export function AICoach() {
     addChatMessage({ id: uniqueId(), role:'user', content: trimmed, timestamp: new Date().toISOString() });
     setIsTyping(true); setAILoading(true);
     try {
+      const { profile } = useAppStore.getState();
       const context = {
+        name:        profile?.name ?? preferences?.name,
         monthly:     monthlySummary?.total,
-        topCategory: monthlySummary?.byCategory ? Object.entries(monthlySummary.byCategory).sort(([,a],[,b])=>b-a)[0]?.[0] : undefined,
-        streak:      gamification?.streak,
-        name:        preferences?.name,
+        topCategory: monthlySummary?.byCategory
+          ? Object.entries(monthlySummary.byCategory).sort(([,a],[,b])=>b-a)[0]?.[0]
+          : undefined,
+        streak:               gamification?.streak,
+        primaryTransport:     profile?.primaryTransport,
+        weeklyCommuteKm:      profile?.weeklyCommuteKm,
+        monthlyElectricityKwh:profile?.monthlyElectricityKwh,
+        dietType:             profile?.dietType,
+        monthlyShoppingItems: profile?.monthlyShoppingItems,
+        shortFlightsPerYear:  profile?.shortFlightsPerYear,
+        longFlightsPerYear:   profile?.longFlightsPerYear,
+        usesRenewableEnergy:  profile?.usesRenewableEnergy,
+        hasAirConditioning:   profile?.hasAirConditioning,
       };
       const response = await chatWithCoach(trimmed, chatHistory.slice(-10).map(m=>({role:m.role,content:m.content})), context);
       addChatMessage({ id: uniqueId(), role:'assistant', content: response, timestamp: new Date().toISOString() });

@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
-import { saveRecord } from '@/lib/storage';
+import { saveRecord, saveProfile } from '@/lib/storage';
 
 // ─── Assessment data types ────────────────────────────────────────────
 interface AssessmentData {
@@ -165,18 +165,31 @@ export default function OnboardingPage() {
       theme: 'system',
       units: 'metric',
     });
-    // 3. Persist full assessment separately for Settings display
-    try {
-      localStorage.setItem('cw_assessment', JSON.stringify({
-        primaryTransport:       data.primaryTransport,
-        weeklyCarKm:            data.weeklyCarKm,
-        electricityKwh:         data.electricityKwh,
-        hasAC:                  data.hasAC,
-        monthlyShoppingItems:   data.monthlyShoppingItems,
-        shortFlightsPerYear:    data.shortFlightsPerYear,
-        longFlightsPerYear:     data.longFlightsPerYear,
-      }));
-    } catch { /* quota exceeded */ }
+    // 3. Save full SustainabilityProfile — the unified data model
+    saveProfile({
+      name:                  data.name.trim(),
+      region:                '',
+      units:                 'metric',
+      primaryTransport:      data.primaryTransport as import('@/lib/storage').SustainabilityProfile['primaryTransport'],
+      weeklyCommuteKm:       data.weeklyCarKm,
+      hasPrivateCar:         !['bicycle','walking','bus','train'].includes(data.primaryTransport),
+      monthlyElectricityKwh: data.electricityKwh,
+      hasAirConditioning:    data.hasAC,
+      acHoursPerDay:         data.hasAC ? 4 : 0,
+      usesRenewableEnergy:   false,
+      dietType:              data.dietType as import('@/lib/storage').SustainabilityProfile['dietType'],
+      monthlyShoppingItems:  data.monthlyShoppingItems,
+      shortFlightsPerYear:   data.shortFlightsPerYear,
+      longFlightsPerYear:    data.longFlightsPerYear,
+      wasteRecyclingPercent: 30,
+      compostsFood:          false,
+      aiCoachingEnabled:     true,
+      forecastNotifications: true,
+      challengesEnabled:     true,
+      completedAt:           new Date().toISOString(),
+      updatedAt:             new Date().toISOString(),
+      version:               1,
+    });
     router.push('/dashboard');
   };
 

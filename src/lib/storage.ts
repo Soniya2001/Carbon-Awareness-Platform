@@ -1,12 +1,13 @@
 // localStorage persistence layer - all operations wrapped in try/catch for SSR safety
 
 export const KEYS = {
-  RECORDS: 'cw_records',
+  RECORDS:     'cw_records',
   PREFERENCES: 'cw_prefs',
-  GAMIFICATION: 'cw_gamification',
-  CHALLENGES: 'cw_challenges',
+  PROFILE:     'cw_profile',       // NEW: full sustainability profile
+  GAMIFICATION:'cw_gamification',
+  CHALLENGES:  'cw_challenges',
   SIMULATIONS: 'cw_simulations',
-  CHAT_HISTORY: 'cw_chat',
+  CHAT_HISTORY:'cw_chat',
 } as const;
 
 // ─────────────────────── Interfaces ───────────────────────
@@ -24,7 +25,7 @@ export interface ActivityRecord {
 }
 
 export interface MonthlySummary {
-  month: string; // YYYY-MM
+  month: string;
   total: number;
   byCategory: Record<string, number>;
   recordCount: number;
@@ -38,6 +39,140 @@ export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';
   units: 'metric' | 'imperial';
   notifications: boolean;
+}
+
+/**
+ * SustainabilityProfile — single source of truth for all profile data.
+ * Used by Dashboard, Calculator, Carbon Twin, Forecast, AI Coach,
+ * Challenges, Achievements, and Settings.
+ */
+export interface SustainabilityProfile {
+  // A. Personal Information
+  name: string;
+  region: string;
+  units: 'metric' | 'imperial';
+
+  // B. Transportation
+  primaryTransport: 'car_petrol' | 'car_diesel' | 'car_electric' | 'car_hybrid' |
+                    'motorcycle' | 'bus' | 'train' | 'bicycle' | 'walking';
+  weeklyCommuteKm: number;
+  hasPrivateCar: boolean;
+
+  // C. Home Energy
+  monthlyElectricityKwh: number;
+  hasAirConditioning: boolean;
+  acHoursPerDay: number;
+  usesRenewableEnergy: boolean;
+
+  // D. Food
+  dietType: 'vegan' | 'vegetarian' | 'flexitarian' | 'omnivore' | 'high_meat';
+
+  // E. Lifestyle
+  monthlyShoppingItems: number;   // clothing/electronics per month
+  shortFlightsPerYear: number;    // <3h flights
+  longFlightsPerYear: number;     // >3h flights
+  wasteRecyclingPercent: number;  // 0-100%
+  compostsFood: boolean;
+
+  // F. AI Preferences
+  aiCoachingEnabled: boolean;
+  forecastNotifications: boolean;
+  challengesEnabled: boolean;
+
+  // Meta
+  completedAt: string;
+  updatedAt: string;
+  version: number;
+}
+
+export const DEFAULT_PROFILE: SustainabilityProfile = {
+  name: '',
+  region: '',
+  units: 'metric',
+  primaryTransport: 'car_petrol',
+  weeklyCommuteKm: 50,
+  hasPrivateCar: true,
+  monthlyElectricityKwh: 300,
+  hasAirConditioning: false,
+  acHoursPerDay: 0,
+  usesRenewableEnergy: false,
+  dietType: 'omnivore',
+  monthlyShoppingItems: 2,
+  shortFlightsPerYear: 2,
+  longFlightsPerYear: 1,
+  wasteRecyclingPercent: 30,
+  compostsFood: false,
+  aiCoachingEnabled: true,
+  forecastNotifications: true,
+  challengesEnabled: true,
+  completedAt: '',
+  updatedAt: '',
+  version: 1,
+};
+
+/** Calculate profile completion percentage (0–100) */
+export function profileCompletionPercent(profile: SustainabilityProfile): number {
+  const fields: Array<keyof SustainabilityProfile> = [
+    'name', 'primaryTransport', 'weeklyCommuteKm',
+    'monthlyElectricityKwh', 'dietType', 'monthlyShoppingItems',
+    'shortFlightsPerYear', 'longFlightsPerYear', 'wasteRecyclingPercent',
+  ];
+  const filled = fields.filter(f => {
+    const v = profile[f];
+    if (typeof v === 'string') return v.length > 0;
+    if (typeof v === 'number') return v >= 0;
+    return v !== null && v !== undefined;
+  });
+  return Math.round((filled.length / fields.length) * 100);
+}
+
+/** Estimate monthly CO₂e baseline from profile (before any logged activities) */
+export function profileBaselineMonthly(profile: SustainabilityProfile): Record<string, number> {
+  const TRANSPORT_FACTOR: Record<string, number> = {
+    car_petrol: 0.21233, car_diesel: 0.16844, car_electric: 0.05302,
+    car_hybrid: 0.10630, motorcycle: 0.11600, bus: 0.08890,
+    train: 0.03694, bicycle: 0, walking: 0,
+  };
+  const DIET_DAILY: Record<string, number> = {
+    vegan: 2.89, vegetarian: 3.81, flexitarian: 5.63, omnivore: 7.19, high_meat: 9.50,
+  };
+
+  const transport = profile.weeklyCommuteKm * (TRANSPORT_FACTOR[profile.primaryTransport] ?? 0.21233) * 4.33;
+  const electricity = profile.monthlyElectricityKwh * (profile.usesRenewableEnergy ? 0.012 : 0.233);
+  const ac = profile.hasAirConditioning ? profile.acHoursPerDay * 30 * 0.583 : 0;
+  const food = (DIET_DAILY[profile.dietType] ?? 5.63) * 30;
+  const shopping = profile.monthlyShoppingItems * 33.4;
+  const flights = ((profile.shortFlightsPerYear * 1500 * 0.255) + (profile.longFlightsPerYear * 8000 * 0.195)) / 12;
+  const waste = (100 - profile.wasteRecyclingPercent) / 100 * 30 * 0.449;
+
+  return {
+    transportation: Math.round((transport + flights) * 10) / 10,
+    energy:         Math.round((electricity + ac) * 10) / 10,
+    food:           Math.round(food * 10) / 10,
+    shopping:       Math.round(shopping * 10) / 10,
+    waste:          Math.round(waste * 10) / 10,
+  };
+}
+
+// ─────────────────────── Profile CRUD ─────────────────────────────
+
+export function getProfile(): SustainabilityProfile {
+  const stored = safeGet<Partial<SustainabilityProfile>>(KEYS.PROFILE, {});
+  return { ...DEFAULT_PROFILE, ...stored };
+}
+
+export function saveProfile(partial: Partial<SustainabilityProfile>): void {
+  const current = getProfile();
+  safeSet(KEYS.PROFILE, {
+    ...current,
+    ...partial,
+    updatedAt: new Date().toISOString(),
+    version: 1,
+  });
+}
+
+export function isProfileComplete(profile: SustainabilityProfile): boolean {
+  return profile.name.length > 0 && profile.completedAt.length > 0;
 }
 
 export interface GamificationState {

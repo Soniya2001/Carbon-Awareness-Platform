@@ -8,6 +8,8 @@ import {
   getMonthlySummary,
   getPreferences,
   savePreferences,
+  getProfile,
+  saveProfile,
   getGamification,
   addEcoPoints,
   updateStreak,
@@ -23,6 +25,7 @@ import {
   type ActivityRecord,
   type MonthlySummary,
   type UserPreferences,
+  type SustainabilityProfile,
   type GamificationState,
   type StoredChallenge,
   type StoredSimulation,
@@ -39,63 +42,43 @@ export interface ActivityInput {
 }
 
 interface AppState {
-  // Data
   records: ActivityRecord[];
   monthlySummary: MonthlySummary | null;
   preferences: UserPreferences | null;
+  profile: SustainabilityProfile | null;
   gamification: GamificationState | null;
   challenges: StoredChallenge[];
   simulations: StoredSimulation[];
   chatHistory: ChatMessage[];
   newBadges: string[];
-
-  // UI state
   isLoading: boolean;
   aiLoading: boolean;
 }
 
 interface AppActions {
-  // Initialization
   init: () => void;
-
-  // Activity logging
   logActivity: (input: ActivityInput) => ActivityRecord | null;
-
-  // Data refresh
   refreshSummary: () => void;
-
-  // Preferences
   updatePreferences: (partial: Partial<UserPreferences>) => void;
-
-  // Gamification
+  updateProfile: (partial: Partial<SustainabilityProfile>) => void;
   addPoints: (pts: number, reason?: string) => void;
-
-  // Challenges
   joinChallenge: (id: string) => void;
   updateChallengeProgress: (id: string, progress: number) => void;
   markChallengeComplete: (id: string) => void;
   addChallenge: (ch: StoredChallenge) => void;
-
-  // Simulations
   addSimulation: (sim: StoredSimulation) => void;
-
-  // Chat
   addChatMessage: (msg: ChatMessage) => void;
   clearChat: () => void;
-
-  // UI
   setAILoading: (v: boolean) => void;
   dismissBadges: () => void;
-
-  // Records
   deleteRecord: (id: string) => void;
 }
 
 export const useAppStore = create<AppState & AppActions>((set, get) => ({
-  // ── Initial State ──────────────────────────────
   records: [],
   monthlySummary: null,
   preferences: null,
+  profile: null,
   gamification: null,
   challenges: [],
   simulations: [],
@@ -104,25 +87,17 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   isLoading: false,
   aiLoading: false,
 
-  // ── Initialization ─────────────────────────────
   init: () => {
     try {
-      const records = getRecords();
-      const monthlySummary = getMonthlySummary();
-      const preferences = getPreferences();
-      const gamification = getGamification();
-      const challenges = getChallenges();
-      const simulations = getSimulations();
-      const chatHistory = getChatHistory();
-
       set({
-        records,
-        monthlySummary,
-        preferences,
-        gamification,
-        challenges,
-        simulations,
-        chatHistory,
+        records:       getRecords(),
+        monthlySummary:getMonthlySummary(),
+        preferences:   getPreferences(),
+        profile:       getProfile(),
+        gamification:  getGamification(),
+        challenges:    getChallenges(),
+        simulations:   getSimulations(),
+        chatHistory:   getChatHistory(),
       });
     } catch (error) {
       console.error('Failed to initialize app store:', error);
@@ -206,13 +181,21 @@ export const useAppStore = create<AppState & AppActions>((set, get) => ({
   updatePreferences: (partial: Partial<UserPreferences>) => {
     try {
       savePreferences(partial);
-      const preferences = getPreferences();
-      set({ preferences });
+      set({ preferences: getPreferences() });
     } catch (error) {
       console.error('Failed to update preferences:', error);
     }
   },
 
+  // ── Sustainability Profile (single source of truth) ────────────
+  updateProfile: (partial: Partial<SustainabilityProfile>) => {
+    try {
+      saveProfile(partial);
+      set({ profile: getProfile() });
+    } catch (error) {
+      console.error('Failed to update profile:', error);
+    }
+  },
   // ── Gamification ───────────────────────────────
   addPoints: (pts: number, reason = 'Eco action') => {
     try {
