@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -26,12 +26,11 @@ const NAV_ITEMS = [
   { href: '/settings',     label: 'Settings',     icon: Settings        },
 ];
 
-export function Sidebar() {
+export const Sidebar = memo(function Sidebar() {
   const pathname = usePathname();
   const { gamification } = useAppStore();
   const [collapsed, setCollapsed] = useState(false);
 
-  // Persist collapsed state
   useEffect(() => {
     try {
       const stored = localStorage.getItem('cw_sidebar_collapsed');
@@ -39,13 +38,13 @@ export function Sidebar() {
     } catch {}
   }, []);
 
-  const toggleCollapsed = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    try {
-      localStorage.setItem('cw_sidebar_collapsed', String(next));
-    } catch {}
-  };
+  const toggleCollapsed = useCallback(() => {
+    setCollapsed(prev => {
+      const next = !prev;
+      try { localStorage.setItem('cw_sidebar_collapsed', String(next)); } catch {}
+      return next;
+    });
+  }, []);
 
   const levelLabel = gamification ? LEVEL_LABELS[gamification.level] ?? 'Seedling 🌱' : 'Seedling 🌱';
   const points = gamification?.points ?? 0;
@@ -170,4 +169,4 @@ export function Sidebar() {
       </button>
     </motion.aside>
   );
-}
+});

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,7 +12,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAppStore } from '@/store/useAppStore';
 import { cn } from '@/lib/utils';
-import { saveRecord, saveProfile } from '@/lib/storage';
+import { saveRecord, saveProfile, type ActivityRecord } from '@/lib/storage';
 
 // ─── Assessment data types ────────────────────────────────────────────
 interface AssessmentData {
@@ -71,9 +71,9 @@ const DIET_OPTIONS = [
 ] as const;
 
 // ─── Compute initial carbon records from assessment ───────────────────
-function buildInitialRecords(data: AssessmentData) {
+function buildInitialRecords(data: AssessmentData): ActivityRecord[] {
   const today = new Date();
-  const records = [];
+  const records: ActivityRecord[] = [];
 
   // Transportation — spread over last 4 weeks
   const CAR_FACTOR: Record<string, number> = { car_petrol: 0.21233, car_electric: 0.05302, bus: 0.08890, train: 0.03694, bicycle: 0, walking: 0 };
@@ -147,14 +147,18 @@ export default function OnboardingPage() {
 
   if (preferences.onboardingDone) return null;
 
-  const update = (partial: Partial<AssessmentData>) => setData(prev => ({ ...prev, ...partial }));
+  const update = useCallback((partial: Partial<AssessmentData>) =>
+    setData(prev => ({ ...prev, ...partial })), []);
+
+  // Memoize annual estimate so it doesn't recompute every render
+  const annualEstimate = useMemo(() => estimateAnnualKg(data), [data]);
 
   const finish = async () => {
     setCompleting(true);
     // 1. Save initial carbon records from assessment answers
     const initialRecords = buildInitialRecords(data);
     for (const r of initialRecords) {
-      saveRecord(r as Parameters<typeof saveRecord>[0]);
+      saveRecord(r);
     }
     // 2. Save preferences (single source of truth)
     updatePreferences({
@@ -368,7 +372,7 @@ export default function OnboardingPage() {
                   <div className="rounded-xl border border-eco-200 bg-eco-50 dark:bg-eco-900/20 dark:border-eco-800 p-4">
                     <p className="text-xs font-semibold text-eco-700 dark:text-eco-300 mb-1">Your estimated annual footprint</p>
                     <p className="text-2xl font-bold text-eco-800 dark:text-eco-200">
-                      {estimateAnnualKg(data).toFixed(0)} kg CO₂e
+                      {annualEstimate.toFixed(0)} kg CO₂e
                     </p>
                     <p className="text-xs text-eco-600 dark:text-eco-400 mt-0.5">
                       Global average: 4,800 kg/year · IPCC 2030 target: 2,300 kg/year

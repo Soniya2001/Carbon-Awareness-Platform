@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -42,11 +42,11 @@ const DIET_LABEL: Record<string, string> = {
 export default function ProfilePage() {
   const router = useRouter();
   const { profile, monthlySummary } = useAppStore();
-  const [baseline, setBaseline] = useState<Record<string, number> | null>(null);
-
-  useEffect(() => {
-    if (profile) setBaseline(profileBaselineMonthly(profile));
-  }, [profile]);
+  // profileBaselineMonthly is pure/synchronous — no need for useState+useEffect
+  const baseline = useMemo(
+    () => (profile ? profileBaselineMonthly(profile) : null),
+    [profile],
+  );
 
   if (!profile) return null;
 

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Trash2, Bot, User, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -45,7 +45,7 @@ export function AICoach() {
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior:'smooth' }); }, [chatHistory, isTyping]);
 
-  const sendMessage = async (text: string) => {
+  const sendMessage = useCallback(async (text: string) => {
     const trimmed = sanitize(text.trim());
     if (!trimmed) return;
     setError(null); setInputText('');
@@ -75,7 +75,7 @@ export function AICoach() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to get response');
     } finally { setIsTyping(false); setAILoading(false); }
-  };
+  }, [chatHistory, preferences, gamification, monthlySummary, addChatMessage, setAILoading]);
 
   return (
     <div className="flex flex-col h-[600px] rounded-xl border bg-card overflow-hidden">

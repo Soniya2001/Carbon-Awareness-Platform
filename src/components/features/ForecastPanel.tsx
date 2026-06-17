@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingUp, TrendingDown, Minus, Sparkles, Loader2, AlertCircle } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,16 +25,22 @@ export function ForecastPanel() {
   const [loadingInsight, setLoadingInsight] = useState(false);
   const hasData = records.length >= 3;
 
-  // Build forecast from activity records
-  useEffect(() => {
+  // Derive daily records with useMemo — avoids rebuilding map on every render
+  const dailyRecords = useMemo(() => {
     const dailyMap: Record<string, number> = {};
     for (const r of records) {
       dailyMap[r.date] = (dailyMap[r.date] ?? 0) + r.co2e;
     }
-    setForecast(forecastFromHistory(Object.entries(dailyMap).map(([date, total]) => ({ date, total }))));
+    return Object.entries(dailyMap).map(([date, total]) => ({ date, total }));
   }, [records]);
 
-  // Fetch AI insight — always call, the route handles empty data gracefully
+  // Rebuild forecast only when dailyRecords change
+  useEffect(() => {
+    setForecast(forecastFromHistory(dailyRecords));
+  }, [dailyRecords]);
+
+  // Fetch AI insight — include monthlySummary.total in deps so it stays fresh
+  const currentMonthly = monthlySummary?.total ?? 0;
   useEffect(() => {
     if (!forecast) return;
     setLoadingInsight(true);
@@ -43,13 +49,13 @@ export function ForecastPanel() {
       predicted: forecast.nextMonth,
       trend:     forecast.trend,
       period:    'next month',
-      current:   monthlySummary?.total ?? 0,
+      current:   currentMonthly,
     })
       .then(setInsight)
       .catch(() => setInsight('Log more activities to generate a forecast insight.'))
       .finally(() => { setLoadingInsight(false); setAILoading(false); });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forecast?.confidence]);
+  // forecast.confidence changes only when underlying data changes — correct dep
+  }, [forecast?.confidence, currentMonthly, setAILoading]);
 
   if (!forecast) {
     return (

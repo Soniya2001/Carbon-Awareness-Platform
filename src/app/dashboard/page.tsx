@@ -18,13 +18,18 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
+import dynamic from 'next/dynamic';
 import { KPICard } from '@/components/features/KPICard';
 import { ChallengeCard } from '@/components/features/ChallengeCard';
-import { PieBreakdown, TrendLine } from '@/components/charts';
+
+// Dynamic imports — charts are heavy (Recharts) and only needed client-side
+const PieBreakdown = dynamic(() => import('@/components/charts').then(m => ({ default: m.PieBreakdown })), { ssr: false, loading: () => <Skeleton className="h-[260px] w-full" /> });
+const TrendLine    = dynamic(() => import('@/components/charts').then(m => ({ default: m.TrendLine    })), { ssr: false, loading: () => <Skeleton className="h-[220px] w-full" /> });
 import { useAppStore } from '@/store/useAppStore';
 import { carbonScore, sustainabilityScore, CATEGORY_ICONS } from '@/lib/carbonEngine';
 import { pointsToNextLevel, LEVEL_LABELS, BADGE_DEFS, profileBaselineMonthly, profileCompletionPercent } from '@/lib/storage';
 import { formatCO2, formatDateShort, capitalize } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export default function DashboardPage() {
   const {

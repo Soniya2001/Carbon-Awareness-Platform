@@ -745,3 +745,21 @@ export function clearAllData(): void {
     // Ignore
   }
 }
+
+/** Import a full backup — avoids duplicating localStorage keys in components */
+export function importAllData(json: Record<string, unknown>): void {
+  const map: Record<string, string> = {
+    records:      KEYS.RECORDS,
+    gamification: KEYS.GAMIFICATION,
+    challenges:   KEYS.CHALLENGES,
+    simulations:  KEYS.SIMULATIONS,
+    preferences:  KEYS.PREFERENCES,
+    profile:      KEYS.PROFILE,
+    chat:         KEYS.CHAT_HISTORY,
+  };
+  for (const [field, key] of Object.entries(map)) {
+    if (json[field] !== undefined) {
+      safeSet(key, json[field]);
+    }
+  }
+}

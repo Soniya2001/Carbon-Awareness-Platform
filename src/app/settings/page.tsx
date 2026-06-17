@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTheme } from 'next-themes';
 import {
   Settings, User, Car, Zap, Utensils, ShoppingBag, Plane,
-  Trash2, Download, Upload, CheckCircle2, Bot, Globe,
+  Trash2, Download, Upload, CheckCircle2, Bot,
 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { useAppStore } from '@/store/useAppStore';
-import { exportAllData, clearAllData, type SustainabilityProfile } from '@/lib/storage';
+import { exportAllData, clearAllData, importAllData, type SustainabilityProfile } from '@/lib/storage';
 
 // ── Slider helper ──────────────────────────────────────────────────────
 function SliderRow({
@@ -77,16 +77,15 @@ export default function SettingsPage() {
     setP(prev => prev ? { ...prev, ...partial } : prev);
   }, []);
 
-  if (!preferences || !p) return null;
-
-  const handleSave = () => {
+  const handleSave = useCallback(() => {
+    if (!p || !preferences) return;
     updateProfile({ ...p, updatedAt: new Date().toISOString(), completedAt: p.completedAt || new Date().toISOString() });
     updatePreferences({ name: p.name, dietType: p.dietType as typeof preferences.dietType, units: p.units });
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
-  };
+  }, [p, preferences, updateProfile, updatePreferences]);
 
-  const handleExport = () => {
+  const handleExport = useCallback(() => {
     try {
       const blob = new Blob([exportAllData()], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
@@ -97,31 +96,31 @@ export default function SettingsPage() {
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
     } catch (e) { console.error(e); }
-  };
+  }, []);
 
-  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImport = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
     const reader = new FileReader();
     reader.onload = ev => {
       try {
-        const json = JSON.parse(ev.target?.result as string);
+        const raw = ev.target?.result;
+        if (typeof raw !== 'string') return;
+        const json = JSON.parse(raw) as Record<string, unknown>;
         if (json.version && (json.records || json.gamification)) {
-          if (json.records)      localStorage.setItem('cw_records',      JSON.stringify(json.records));
-          if (json.gamification) localStorage.setItem('cw_gamification', JSON.stringify(json.gamification));
-          if (json.challenges)   localStorage.setItem('cw_challenges',   JSON.stringify(json.challenges));
-          if (json.simulations)  localStorage.setItem('cw_simulations',  JSON.stringify(json.simulations));
-          if (json.preferences)  localStorage.setItem('cw_prefs',        JSON.stringify(json.preferences));
-          if (json.profile)      localStorage.setItem('cw_profile',      JSON.stringify(json.profile));
-          alert('Imported! Reloading…'); window.location.reload();
+          importAllData(json);
+          alert('Imported! Reloading…');
+          window.location.reload();
         } else { alert('Invalid backup file.'); }
       } catch { alert('Failed to parse JSON.'); }
     };
     reader.readAsText(file);
-  };
+  }, []);
 
-  const handleClear = () => {
+  const handleClear = useCallback(() => {
     if (confirm('Delete ALL data permanently?')) { clearAllData(); window.location.reload(); }
-  };
+  }, []);
+
+  if (!preferences || !p) return null;
 
   const sectionClass = 'space-y-4 pt-2';
 
